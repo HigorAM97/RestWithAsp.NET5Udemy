@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS person(
+id BIGINT(20) NOT NULL AUTO_INCREMENT,
+address VARCHAR(100) NOT NULL,
+firstname VARCHAR(80) NOT NULL,
+gender VARCHAR(6) NOT NULL,
+lastname VARCHAR(80) NOT NULL,
+PRIMARY KEYrest_with_asp_net_udemy (id))
