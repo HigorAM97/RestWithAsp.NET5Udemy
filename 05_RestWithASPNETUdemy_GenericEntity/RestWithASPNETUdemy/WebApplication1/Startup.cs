@@ -1,23 +1,22 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using RestWithASPNETUdemy.Repository.Implementations;
+using Microsoft.OpenApi.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using WebApplication1.Model.Context;
 using RestWithASPNETUdemy.Repository;
 using RestWithASPNETUdemy.Business;
 using RestWithASPNETUdemy.Business.Implementations;
 using Serilog;
 using WebApplication1.Repository.Generic;
+using Microsoft.Net.Http.Headers;
+using WebApplication1.Hypermedia.Filters;
+using WebApplication1.Hypermedia.Enricher;
+using Microsoft.AspNetCore.Rewrite;
 
 namespace WebApplication1
 {
@@ -38,7 +37,7 @@ namespace WebApplication1
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-          
+
             services.AddControllers();
             var connection = Configuration["MySqlConnection:MySqlConnectionString"];
             services.AddDbContext<MySQLContext>(options => options.UseMySql(connection));
@@ -46,9 +45,33 @@ namespace WebApplication1
             {
                 MigrateDatabase(connection);
             }
+            var filterOptions = new HyperMediaFilterOptions();
+            filterOptions.ContentReponseEnricherList.Add(new PersonEnricher());
+            services.AddSingleton(filterOptions);
             services.AddApiVersioning();
+            services.AddSwaggerGen(c => 
+            {
+                c.SwaggerDoc("v1",
+                    new OpenApiInfo
+                    {
+                        Title = "MyRestAPI",
+                        Version = "v1",
+                        Description = "Input some description here",
+                        Contact = new OpenApiContact 
+                        {
+                            Name = "Higor Amorim",
+                            Url = new Uri("https://github.com/HigorAM97/RestWithAsp.NET5Udemy")
+                        }
+                    });
+            });
+            services.AddMvc(options =>
+            {
+                options.RespectBrowserAcceptHeader = true;
+                options.FormatterMappings.SetMediaTypeMappingForFormat("xml", MediaTypeHeaderValue.Parse("application/xml"));
+                options.FormatterMappings.SetMediaTypeMappingForFormat("json", MediaTypeHeaderValue.Parse("application/json"));
+
+            }).AddXmlSerializerFormatters();
             services.AddScoped<IPersonBusiness, PersonBusinessImplementation>();
-            services.AddScoped<IPersonRepository, PersonRepositoryImplementation>();
             services.AddScoped<IBookBusiness, BookBusinessImplementation>();
             services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         }
@@ -64,12 +87,21 @@ namespace WebApplication1
             app.UseHttpsRedirection();
 
             app.UseRouting();
+            app.UseSwagger();
+            app.UseSwaggerUI(c => 
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "MyRestAPI - v1");
+            });
+            var option = new RewriteOptions();
+            option.AddRedirect("^$", "swagger");
+            app.UseRewriter(option);
 
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapControllerRoute("DefaultApi", "{controller=values}/{id?}");
             });
         }
         private void MigrateDatabase(string connection)

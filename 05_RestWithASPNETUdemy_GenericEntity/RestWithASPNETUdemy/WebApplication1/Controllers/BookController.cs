@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WebApplication1.Data.VO;
+using WebApplication1.Hypermedia.Filters;
 
 namespace WebApplication1.Controllers
 {
@@ -25,12 +27,15 @@ namespace WebApplication1.Controllers
         }
 
         [HttpGet]
+        [TypeFilter(typeof(HyperMediaFilter))]
         public IActionResult Get()
         {
             return Ok(_bookBusiness.FindAll());
         }
 
         [HttpGet("{id}")]
+        [TypeFilter(typeof(HyperMediaFilter))]
+
         public IActionResult Get(long id)
         {
             var book = _bookBusiness.FindByID(id);
@@ -39,14 +44,18 @@ namespace WebApplication1.Controllers
         }   
 
         [HttpPost]
-        public IActionResult Post([FromBody] Book book)
+        [TypeFilter(typeof(HyperMediaFilter))]
+
+        public IActionResult Post([FromBody] BookVO book)
         {
             if (book == null) return BadRequest();
             return Ok(_bookBusiness.Create(book));
         }
 
         [HttpPut]
-        public IActionResult Put([FromBody] Book book)
+        [TypeFilter(typeof(HyperMediaFilter))]
+
+        public IActionResult Put([FromBody] BookVO book)
         {
             if (book == null) return BadRequest();
             return Ok(_bookBusiness.Update(book));
